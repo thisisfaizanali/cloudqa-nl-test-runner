@@ -17,6 +17,9 @@ Rules:
 - Use element numbers from the CURRENT page only.
 - Use only credentials and data given in the test case; for other required inputs use realistic dummy values.
 - Close popups, notices or cookie banners that block the page.
+- Perform the steps exactly as the test case states them, in order, the stated number of times. The only extra actions allowed are navigation needed to reach a step and closing popups or banners that block the page.
+- Never take an action to make an expected outcome come true. After the stated steps, judge the page as it is.
+- Repeat an action only if the test case asks for it or the previous attempt returned ERROR.
 - When every expected outcome in the test case is visible on the current page, call finish with passed=true and quote the evidence from the page in reason.
 - If an expected outcome is clearly contradicted, or a required step is impossible after reasonable attempts, call finish with passed=false and explain.
 - Never pass a test whose expected outcome you have not seen."""
@@ -100,8 +103,9 @@ def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False
                 print(history[-1])
                 done.append((name, json.dumps(args, sort_keys=True)))
                 if len(done) >= 3 and done[-1] == done[-2] == done[-3]:
-                    history.append("   note: this exact action was repeated 3 times; the page is probably "
-                                   "not responding to it. Try a different element or approach, or call finish.")
+                    history.append("   note: this exact action ran 3 times in a row. If the test case does not "
+                                   "ask for that, the page is probably not responding: try a different element "
+                                   "or approach, or call finish.")
                     print(history[-1])
                 page = context.pages[-1]
             return Result("FAIL", f"step limit of {max_steps} reached without a verdict", max_steps, history)

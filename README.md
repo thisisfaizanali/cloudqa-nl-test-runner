@@ -102,7 +102,7 @@ Evidence: each run creates `runs/<timestamp>/` with `log.txt` (test case, every 
 
 ## Examples
 
-Real runs with the default Groq setup, headless. Seconds are the `DURATION` the tool printed. Each case ran once.
+Real runs with the default Groq setup, headless. Seconds are the `DURATION` the tool printed. Each case ran once, except the two Add/Remove cases, which ran twice with the same verdict (both timings are shown). The last two cases check that the tool does only the stated steps: it must not click an extra time to make the expected outcome true, and it must still repeat an action when the test case asks for it.
 
 | Test case | `--url` | Expected | Actual (steps, seconds) |
 |---|---|---|---|
@@ -112,6 +112,8 @@ Real runs with the default Groq setup, headless. Seconds are the `DURATION` the 
 | Open the Form Authentication page, log in with username tomsmith and password SuperSecretPassword!, and verify the message 'You logged into a secure area!' is shown | https://the-internet.herokuapp.com | PASS | PASS (5 steps, 26.1 s) |
 | Add a todo item called 'buy milk', then verify the list shows 1 item left | https://demo.playwright.dev/todomvc | PASS | PASS (3 steps, 8.1 s) |
 | Add a todo item called 'buy milk', then verify the list shows 3 items left | https://demo.playwright.dev/todomvc | FAIL | FAIL (3 steps, 13.5 s): page shows "1 item left" |
+| Open the Add/Remove Elements page, click Add Element twice, and verify that three Delete buttons are shown | https://the-internet.herokuapp.com | FAIL (two clicks give two buttons) | FAIL (4 steps, 13.9 s and 10.6 s): "only two Delete buttons" |
+| Open the Add/Remove Elements page, click Add Element three times, and verify that three Delete buttons are shown | https://the-internet.herokuapp.com | PASS | PASS (5 steps, 32.1 s and 25.7 s): "Three Delete buttons are visible" |
 
 The phptravels case took longer because the first three clicks on "Login" timed out (5 s each) until the model clicked an "I Understand & Continue" button on the page. A phptravels hotel search for Dubai also passed (16 steps, about 4 minutes, slowed by rate-limit retries). Logged-in phptravels flows were not tested, because the demo credentials are only issued after a form that asks for personal details.
 
