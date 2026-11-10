@@ -10,7 +10,8 @@ SNAPSHOT_JS = r"""
   document.querySelectorAll('[data-nlr]').forEach(e => e.removeAttribute('data-nlr'));
   const SEL = 'a[href], button, input, select, textarea, summary, [role=button], [role=link], ' +
     '[role=checkbox], [role=radio], [role=tab], [role=menuitem], [role=option], [role=combobox], ' +
-    '[role=switch], [onclick], [contenteditable=""], [contenteditable="true"]';
+    '[role=switch], [onclick], [contenteditable=""], [contenteditable="true"], ' +
+    '[tabindex]:not([tabindex="-1"])';
   const clean = (s, n) => (s || '').replace(/\s+/g, ' ').trim().slice(0, n);
   const visible = el => {
     const r = el.getBoundingClientRect();
@@ -44,13 +45,28 @@ SNAPSHOT_JS = r"""
     for (const c of cands) { const v = clean(c, 80); if (v) return v; }
     return '';
   };
+  const found = Array.from(document.querySelectorAll(SEL))
+    .filter(el => !el.matches('input[type=hidden]') && visible(el));
+  // Second pass: elements with no semantic role that still look clickable (cursor: pointer).
+  // Only the outermost such element, and only if it is not inside or around an element already found.
+  found.forEach(el => el.setAttribute('data-nlr-c', ''));
+  const loose = new Set();
+  for (const el of document.body.querySelectorAll('*')) {
+    if (el.hasAttribute('data-nlr-c') || el.closest('[data-nlr-c]') || el.querySelector('[data-nlr-c]')) continue;
+    if (getComputedStyle(el).cursor !== 'pointer' || !visible(el)) continue;
+    const parent = el.parentElement;
+    if (parent && getComputedStyle(parent).cursor === 'pointer') continue;
+    loose.add(el);
+  }
+  found.forEach(el => el.removeAttribute('data-nlr-c'));
+  const all = found.concat(Array.from(loose))
+    .sort((a, b) => (a.compareDocumentPosition(b) & 4 ? -1 : 1));
   const out = []; let truncated = false;
-  for (const el of document.querySelectorAll(SEL)) {
-    if (el.matches('input[type=hidden]') || !visible(el)) continue;
+  for (const el of all) {
     if (out.length >= maxEl) { truncated = true; break; }
     const ref = out.length + 1;
     el.setAttribute('data-nlr', ref);
-    const kind = kindOf(el), tag = el.tagName;
+    const kind = loose.has(el) ? 'clickable' : kindOf(el), tag = el.tagName;
     const item = { ref, kind, name: nameOf(el), disabled: !!el.disabled };
     if (tag === 'INPUT' && kind !== 'checkbox' && kind !== 'radio') item.type = el.type;
     if (tag === 'SELECT') {
