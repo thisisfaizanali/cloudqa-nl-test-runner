@@ -15,7 +15,7 @@ For the reasoning behind the design and the known limits, see [APPROACH.md](APPR
 ## Requirements
 
 - Python 3.12
-- A free Groq API key from https://console.groq.com
+- A free API key from Groq (https://console.groq.com, the default) or from Google AI Studio (https://aistudio.google.com, for Gemini)
 - Internet access (for the LLM and the site under test)
 
 ## Setup
@@ -43,6 +43,24 @@ cp .env.example .env
 ```
 
 Then open `.env` and replace `your_groq_key_here` with your Groq key. The other two values can stay as they are.
+
+## Choosing the LLM provider
+
+Groq and Gemini were both tested, and both have a free tier. Groq is the default and is read from `.env`.
+
+To use Gemini, create a file named `.env.gemini` with these three lines (the key comes from https://aistudio.google.com), and add `--env-file .env.gemini` to the command:
+
+```
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+LLM_API_KEY=your_gemini_key_here
+LLM_MODEL=gemini-3.5-flash
+```
+
+Any `.env*` file is git-ignored.
+
+Both free tiers have limits. Groq allows 200,000 tokens per day for `openai/gpt-oss-120b`. The Gemini free tier limits requests per day per model: `gemini-3.5-flash` ran out after about 30 requests, roughly 6 test runs. The limits are per model, so another model (for example `gemini-3-flash-preview`) can still work when one is exhausted. If one provider returns ERROR with a 429, switch to the other.
+
+Gemini model names are retired often. `gemini-2.5-flash` already returns 404 for new keys, so if you get a 404, check the current model list.
 
 ## Usage
 
@@ -116,6 +134,17 @@ Real runs with the default Groq setup, headless. Seconds are the `DURATION` the 
 | Open the Add/Remove Elements page, click Add Element three times, and verify that three Delete buttons are shown | https://the-internet.herokuapp.com | PASS | PASS (5 steps, 32.1 s and 25.7 s): "Three Delete buttons are visible" |
 
 The phptravels case took longer because the first three clicks on "Login" timed out (5 s each) until the model clicked an "I Understand & Continue" button on the page. A phptravels hotel search for Dubai also passed (16 steps, about 4 minutes, slowed by rate-limit retries). Logged-in phptravels flows were not tested, because the demo credentials are only issued after a form that asks for personal details.
+
+### Gemini (gemini-3.5-flash)
+
+Run with `--env-file .env.gemini`, headless. The other examples were not run on Gemini because the free-tier daily request limit for `gemini-3.5-flash` was reached during testing.
+
+| Test case | `--url` | Expected | Actual (steps, seconds) |
+|---|---|---|---|
+| Log in with username standard_user and password secret_sauce and verify the products page is shown | https://www.saucedemo.com | PASS | PASS (4 steps, 26.2 s) |
+| Log in with username locked_out_user and password secret_sauce and verify the products page is shown | https://www.saucedemo.com | FAIL (user is locked out) | FAIL (4 steps, 17.8 s): "this user has been locked out" |
+| Open the Form Authentication page, log in with username tomsmith and password SuperSecretPassword!, and verify the message 'You logged into a secure area!' is shown | https://the-internet.herokuapp.com | PASS | PASS (5 steps, 28 s) |
+| Open the Add/Remove Elements page, click Add Element twice, and verify that three Delete buttons are shown | https://the-internet.herokuapp.com | FAIL (two clicks give two buttons) | FAIL (4 steps, 56 s): "only two Delete buttons" |
 
 ## Running the offline tests
 

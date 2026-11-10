@@ -10,7 +10,7 @@
 
 **The verdict never passes by default.** The run ends only when the model calls `finish(passed, reason)`. The prompt tells it to pass only when it has seen every expected outcome on the current page, and to quote that evidence. Reaching the step limit (25 by default) is a FAIL. A model or browser error is reported as ERROR (exit code 2), not FAIL, so an outage is never mistaken for a failing test.
 
-**Why Groq.** It has a free tier, an OpenAI-compatible API and tool calling, so the tool is built on the `openai` SDK and takes the endpoint, key and model from three environment variables. Groq with `openai/gpt-oss-120b` is the only setup that was tested. Gemini was tried and is not supported: `gemini-2.5-flash` returns 404 for new API keys because it is retired, and `gemini-3.8-flash` timed out on every request.
+**Why Groq and Gemini.** Both have a free tier, an OpenAI-compatible API and tool calling, so the tool is built on the `openai` SDK and takes the endpoint, key and model from three environment variables. Switching provider is one env file (`--env-file`). Groq with `openai/gpt-oss-120b` is fast but has a daily cap of 200,000 tokens. Gemini was first tried with `gemini-2.5-flash` (retired, returns 404 for new keys) and `gemini-3.8-flash` (timed out on every request), then `gemini-3.5-flash` worked.
 
 ## Design decisions
 
@@ -26,6 +26,7 @@
 - The verdict is an LLM judgment. It can be wrong in both directions (a false PASS or a false FAIL), and results can differ between runs of the same test case.
 - Free-tier rate limits make long flows slow. A 16-step hotel search on phptravels took about 4 minutes.
 - The Groq free tier also has a daily token cap (200,000 tokens per day for openai/gpt-oss-120b when tested). A day of heavy testing used it up, and runs then return ERROR (exit 2) until the quota resets.
+- Gemini's free tier allows few requests per day per model. `gemini-3.5-flash` ran out after about 30 requests (roughly 6 test runs), so only four examples were run on it.
 - The page view is capped at 120 elements and 2500 characters of text, and there is no scroll tool. Content far down a long page can be missed.
 - Not supported: iframes, shadow DOM, canvas, file upload, drag and drop, menus that open only on hover, CAPTCHA and 2FA.
 - Clickable detection is a heuristic. The extra pass checks every element against its neighbours, so it gets slow (roughly quadratic) on very large pages.
@@ -35,7 +36,7 @@
 - A `select` with no label is named by its option text, which can be confusing.
 - If Chromium fails to launch (for example, browsers not installed), the error is a raw Python traceback, not an ERROR result.
 - The step rule is enforced by the prompt, not by code, so a model can still drift from the written steps.
-- Only Groq was verified.
+- Only Groq (`openai/gpt-oss-120b`) and Gemini (`gemini-3.5-flash`) were tested. Other providers and models may behave differently.
 
 ## What I would do next
 
