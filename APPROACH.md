@@ -25,6 +25,7 @@
 
 - The verdict is an LLM judgment. It can be wrong in both directions (a false PASS or a false FAIL), and results can differ between runs of the same test case.
 - Free-tier rate limits make long flows slow. A 16-step hotel search on phptravels took about 4 minutes.
+- The Groq free tier also has a daily token cap (200,000 tokens per day for openai/gpt-oss-120b when tested). A day of heavy testing used it up, and runs then return ERROR (exit 2) until the quota resets.
 - The page view is capped at 120 elements and 2500 characters of text, and there is no scroll tool. Content far down a long page can be missed.
 - Not supported: iframes, shadow DOM, canvas, file upload, drag and drop, menus that open only on hover, CAPTCHA and 2FA.
 - Clickable detection is a heuristic. The extra pass checks every element against its neighbours, so it gets slow (roughly quadratic) on very large pages.
