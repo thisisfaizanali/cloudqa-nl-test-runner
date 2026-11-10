@@ -15,7 +15,8 @@
 ## Design decisions
 
 - **`cursor: pointer` detection.** The first version only listed semantic elements (links, buttons, inputs). The phptravels search widgets are plain `div`s, so they were invisible. A second pass now adds the outermost visible element with a pointer cursor that is not inside or around an element already listed, shown as `clickable`.
-- **Repeat guard.** After the same action three times in a row, a note is added to the history telling the model the page is not responding and to try something else or finish.
+- **Repeat guard.** After the same action three times in a row, a note is added to the history telling the model that, unless the test case asks for the repeat, the page is probably not responding, and to try something else or finish.
+- **Steps as written.** The prompt forbids actions beyond the stated steps, after a final audit caught the model clicking an extra time to make an expected outcome true.
 - **Rate limits.** The SDK retries 429 and 5xx responses up to 6 times with backoff. This is why a long run on the free tier can take minutes.
 - **UTF-8 console.** Page text can contain characters the Windows console codepage cannot print, so output is reconfigured to UTF-8.
 - **Evidence folder.** Every run writes `runs/<timestamp>/log.txt` (test case, steps, verdict, reason) and `final.png`, so a verdict can be checked afterwards.
@@ -32,6 +33,7 @@
 - Credentials written in a test case appear in the console output and in the `runs/` logs. `runs/` is git-ignored.
 - A `select` with no label is named by its option text, which can be confusing.
 - If Chromium fails to launch (for example, browsers not installed), the error is a raw Python traceback, not an ERROR result.
+- The step rule is enforced by the prompt, not by code, so a model can still drift from the written steps.
 - Only Groq was verified.
 
 ## What I would do next
