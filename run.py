@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 
 from nlrunner.agent import run_test
 
+# Page text can hold characters the Windows console codepage cannot encode.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 ap = argparse.ArgumentParser(description="Run a plain-English test case in a real browser.")
 ap.add_argument("test_case")
 ap.add_argument("--url", required=True, help="start URL")
