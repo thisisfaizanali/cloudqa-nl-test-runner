@@ -60,7 +60,7 @@ def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False
     client = OpenAI(base_url=os.environ["LLM_BASE_URL"], api_key=os.environ["LLM_API_KEY"],
                     max_retries=6, timeout=60)
     model = os.environ["LLM_MODEL"]
-    history, i = [], 0
+    history, done, i = [], [], 0  # done: (name, args) of executed actions, for the repeat guard
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not headed)
         try:
@@ -95,6 +95,11 @@ def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False
                 shown = ", ".join(f"{k}={v!r}" for k, v in args.items())
                 history.append(f"{i}. {name}({shown}){label} -> {do_action(page, name, args)}")
                 print(history[-1])
+                done.append((name, json.dumps(args, sort_keys=True)))
+                if len(done) >= 3 and done[-1] == done[-2] == done[-3]:
+                    history.append("   note: this exact action was repeated 3 times; the page is probably "
+                                   "not responding to it. Try a different element or approach, or call finish.")
+                    print(history[-1])
                 page = context.pages[-1]
             return Result("FAIL", f"step limit of {max_steps} reached without a verdict", max_steps)
         except openai.APIError as e:
