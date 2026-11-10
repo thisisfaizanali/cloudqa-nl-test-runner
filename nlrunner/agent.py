@@ -48,6 +48,7 @@ class Result:
     status: str  # "PASS" | "FAIL" | "ERROR"
     reason: str
     steps: int
+    history: list[str]
 
 
 def _label(snap, ref):
@@ -56,13 +57,15 @@ def _label(snap, ref):
     return f" [{m.group(1)} {m.group(2)}]" if m else ""
 
 
-def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False) -> Result:
+def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False,
+             screenshot_path: str | None = None) -> Result:
     client = OpenAI(base_url=os.environ["LLM_BASE_URL"], api_key=os.environ["LLM_API_KEY"],
                     max_retries=6, timeout=60)
     model = os.environ["LLM_MODEL"]
     history, done, i = [], [], 0  # done: (name, args) of executed actions, for the repeat guard
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not headed)
+        page = None
         try:
             context = browser.new_context()
             page = context.new_page()
@@ -90,7 +93,7 @@ def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False
                     continue
                 if name == "finish":
                     return Result("PASS" if args.get("passed") in (True, "true") else "FAIL",
-                                  str(args.get("reason", "")), i)
+                                  str(args.get("reason", "")), i, history)
                 label = _label(snap, args["ref"]) if str(args.get("ref", "")).isdigit() else ""
                 shown = ", ".join(f"{k}={v!r}" for k, v in args.items())
                 history.append(f"{i}. {name}({shown}){label} -> {do_action(page, name, args)}")
@@ -101,10 +104,15 @@ def run_test(test_case: str, url: str, max_steps: int = 25, headed: bool = False
                                    "not responding to it. Try a different element or approach, or call finish.")
                     print(history[-1])
                 page = context.pages[-1]
-            return Result("FAIL", f"step limit of {max_steps} reached without a verdict", max_steps)
+            return Result("FAIL", f"step limit of {max_steps} reached without a verdict", max_steps, history)
         except openai.APIError as e:
-            return Result("ERROR", f"model unavailable: {str(e)[:200]}", i)
+            return Result("ERROR", f"model unavailable: {str(e)[:200]}", i, history)
         except PlaywrightError as e:
-            return Result("ERROR", f"browser error: {(str(e).strip().splitlines() or [''])[0][:200]}", i)
+            return Result("ERROR", f"browser error: {(str(e).strip().splitlines() or [''])[0][:200]}", i, history)
         finally:
+            if screenshot_path and page:
+                try:
+                    page.screenshot(path=screenshot_path)
+                except PlaywrightError:
+                    pass
             browser.close()
